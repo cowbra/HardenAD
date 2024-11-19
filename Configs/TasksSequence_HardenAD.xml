@@ -296,7 +296,7 @@
 		<wellKnownID objectClass="group" translateFrom="%T1-DLG-CptrDomJoin%" translateTo="L-S-T1-DELEG_Computer - Join Domain" />
 		<wellKnownID objectClass="group" translateFrom="%T2-DLG-CptrDomJoin%" translateTo="L-S-T2-DELEG_Computer - Join Domain" />
 		<wellKnownID objectClass="group" translateFrom="%Prefix%" translateTo="L-S" />
-		<wellKnownID objectClass="group" translateFrom="%Prefix-domLoc%" translateTo="L-S-" />
+		<wellKnownID objectClass="group" translateFrom="%Prefix-domLoc%" translateTo="L-S_" />
 		<wellKnownID objectClass="group" translateFrom="%Prefix-global%" translateTo="G-S-" />
 		<wellKnownID objectClass="group" translateFrom="%Groups_Computers%" translateTo="LocalAdmins_%ComputerName%" />
 		<wellKnownID objectClass="text" translateFrom="%OU-Adm%" translateTo="_Administration" />
@@ -560,7 +560,7 @@
 		-->
 		<GPO BackupID="{960547AE-574B-4A5E-B238-7A6C0DD491D2}" Validation="Yes" Name="HAD-Kerberos-AES-Enabled" Description="--- Harden AD --- &quot; ,&quot; Set the encryption types that Kerberos is allowed to use.">
 			<GpoMode Mode="BOTH" Tier="Tier0" />
-			<GpoLink Path="RootDN" Enabled="Yes" Enforced="Yes" />
+			<GpoLink Path="OU=Domain Controllers,RootDN" Enabled="Yes" Enforced="Yes" />
 		</GPO>
 		<!-- 
 			LAPS 

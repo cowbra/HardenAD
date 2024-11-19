@@ -39,16 +39,9 @@ class HADDrive {
         }
         catch {
             $Log.Fatal(("An error occured while collecting the computer type."))        
-        }        
-        try {
-            $isVolumeInitializedForProtection = (Get-WmiObject -Class Win32_EncryptableVolume -Namespace 'root\cimv2\Security\MicrosoftVolumeEncryption' -Filter "DriveLetter=`"$($this.MountPoint)`"").IsVolumeInitializedForProtection
-            $Log.Info(("{0} is initialized for protection" -f $this.MountPoint))
-        }
-        catch {
-            $Log.Fatal(("An error occured while collecting informations about volume encryption status: {0}." -f $_.Exception.Message))        
         }
 
-        if ($isSystemSupported -and $isSystemAWorkstation -and !$isVolumeInitializedForProtection) {
+        if ($isSystemSupported -and $isSystemAWorkstation) {
             $this.ValidVersion = $true
             if (!(Get-Tpm).TpmReady) {
                 $Log.Info("The TPM isn't ready yet for BitLocker encryption.")
@@ -70,8 +63,13 @@ class HADDrive {
 
     [void] EnableBitLocker([string] $CustomPIN) {
         $Log = [LogMessage]::NewLogs()
+
+        # [bool] $isVolumeInitializedForProtection = $false
+
         if ($this.ValidVersion -and $this.TPMReady) {
+
             switch ($this.DiskType) {
+
                 ([DiskType]::OS) {
                     $Log.Info(("Start encryption process for the OS drive: {0}." -f $this.MountPoint))
                     if ($this.PIN) {
@@ -96,14 +94,31 @@ class HADDrive {
                             $Log.Fatal("Secure PIN is empty.")
                         }
                     }
+                    
                     try {
-                        $null = Enable-BitLocker -MountPoint $this.MountPoint -RecoveryPasswordProtector -SkipHardwareTest -Verbose:$false
+                        # Add-BitLockerKeyProtector -MountPoint $this.MountPoint -RecoveryPasswordProtector -Verbose:$false
+
+                        $null = Enable-BitLocker -MountPoint $this.MountPoint -RecoveryPasswordProtector -ErrorAction Stop
                         $Log.Success(("{0} has been successfully encrypted." -f $this.MountPoint))
+                            
+                        # try {
+                        #     $isVolumeInitializedForProtection = (Get-WmiObject -Class Win32_EncryptableVolume -Namespace 'root\cimv2\Security\MicrosoftVolumeEncryption' -Filter "DriveLetter=`"$($this.MountPoint)`"").IsVolumeInitializedForProtection
+                        #     $Log.Info(("{0} is initialized for protection" -f $this.MountPoint))
+                        # }
+                        # catch {
+                        #     $Log.Fatal(("An error occured while collecting informations about volume encryption status: {0}." -f $_.Exception.Message))        
+                        # }
+
+                        # if ($isVolumeInitializedForProtection) {
+                        #     $null = Enable-BitLocker -MountPoint $this.MountPoint -RecoveryPasswordProtector -SkipHardwareTest -ErrorAction Stop
+                        #     $Log.Success(("{0} has been successfully encrypted." -f $this.MountPoint))
+                        # }
                     }
                     catch {
                         $Log.Error("Unable to encrypt {0}: {1}." -f $this.MountPoint, $_.Exception.Message)
                     }                
                 }
+                
                 ([DiskType]::Fixed) {
                     $Log.Info(("Start encryption process for the fixed drive: {0}." -f $this.MountPoint))
                     [Microsoft.BitLocker.Structures.BitLockerVolume] $BLV = $null
@@ -113,19 +128,20 @@ class HADDrive {
                     catch {
                         $Log.Error(("Unable to get a volume for {0}: {1}." -f $this.MountPoint, $_.Exception.Message))
                     }
-                    [bool] $isOSEncrypted = $BLV.VolumeStatus -ne [Microsoft.BitLocker.Structures.BitLockerVolumeStatus]::FullyDecrypted
+                    [bool] $isOSEncrypted = $BLV.VolumeStatus -eq [Microsoft.BitLocker.Structures.BitLockerVolumeStatus]::EncryptionInProgress `
+                        -or $BLV.VolumeStatus -eq [Microsoft.Bitlocker.Structures.BitLockerVolumeStatus]::FullyEncrypted
                     $Log.Info(("{0} is {1}" -f $this.MountPoint, $BLV.VolumeStatus))
 
                     if ($isOSEncrypted) {
                         try {
-                            $null = Enable-BitLocker -MountPoint $this.MountPoint -RecoveryPasswordProtector -SkipHardwareTest -Verbose:$false
+                            $null = Enable-BitLocker -MountPoint $this.MountPoint -RecoveryPasswordProtector -ErrorAction Stop
                             $Log.Success(("{0} has been encrypted successfully." -f $this.MountPoint))
                         }
                         catch {
                             $Log.Fatal(("An error occured while encrypting {0}: {1}." -f $this.MountPoint, $_.Exception.Message))                        
                         }                        
                         try {
-                            $null = Enable-BitLockerAutoUnlock -MountPoint $this.MountPoint
+                            $null = Enable-BitLockerAutoUnlock -MountPoint $this.MountPoint -ErrorAction Stop
                             $Log.Success(("Auto unlock has been activated on {0}." -f $this.MountPoint))
                         }
                         catch {
@@ -135,7 +151,7 @@ class HADDrive {
                 }
                 ([DiskType]::Removable) {
                     $Log.Info(("Start encryption process for the removable drive: {0}." -f $this.MountPoint))
-                    $null = Enable-BitLocker -MountPoint $this.MountPoint -RecoveryPasswordProtector -SkipHardwareTest -Verbose:$false
+                    $null = Enable-BitLocker -MountPoint $this.MountPoint -RecoveryPasswordProtector -ErrorAction Stop
                 }
                 Default {}
             }
@@ -151,16 +167,31 @@ class HADDrive {
         catch {
             $Log.Error(("Unable to get a volume for {0}: {1}." -f $this.MountPoint, $_.Exception.Message))
         }
-        $KeyProtectorID = ($BLV.KeyProtector | Where-Object { $_.KeyProtectorType -eq [Microsoft.BitLocker.Structures.BitLockerVolumeKeyProtectorType]::RecoveryPassword }).KeyProtectorID
+
+        $KeyProtectorID = ($BLV.KeyProtector | Where-Object { 
+                $_.KeyProtectorType -eq [Microsoft.BitLocker.Structures.BitLockerVolumeKeyProtectorType]::RecoveryPassword 
+            }).KeyProtectorID
+        
         if ($KeyProtectorID) {
-            try {
-                $null = Backup-BitLockerKeyProtector -MountPoint $this.MountPoint -KeyProtectorId $KeyProtectorID -Verbose:$false
-                $Log.Success(("Recovery Key for {0} has been saved on Active Directory." -f $this.MountPoint))
+
+            if ($KeyProtectorID.Count -gt 1) {
+                $Log.Warning(("There are {0} recovery key, situation may be reviewed..." -f $KeyProtectorID.Count))
             }
-            catch {
-                $Log.Error(("Unable to backup recovery key for {0}: {1}." -f $this.MountPoint, $_.Exception.Message))
-            }        
+
+            foreach ($Key in $KeyProtectorID) {
+                try {
+                    $null = Backup-BitLockerKeyProtector -MountPoint $this.MountPoint -KeyProtectorId $Key -Verbose:$false
+                    $Log.Success(("Recovery Key for {0} has been saved on Active Directory." -f $this.MountPoint))
+                }
+                catch {
+                    $Log.Error(("Unable to backup recovery key for {0}.: {1}." -f $this.MountPoint, $_.Exception.Message))
+                }        
+            }
         }
+    }
+
+    [void] BackupBitlockerKeyToAzure() {
+        # Not implemented yet
     }
 }
 

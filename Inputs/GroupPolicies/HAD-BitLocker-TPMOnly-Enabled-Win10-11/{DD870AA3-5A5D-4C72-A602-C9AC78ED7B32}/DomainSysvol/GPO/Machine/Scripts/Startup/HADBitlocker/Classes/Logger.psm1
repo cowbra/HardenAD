@@ -63,6 +63,8 @@ class Log {
         $Path = $Caller.ScriptName.Split("\")
         $DisplayedMessage = "[" + $LogSeverity.ToString().ToUpper() + "] " + $Message
         $FormattedLog = (Get-Date -Format "yyyy-MM-ddThh:mm:ss") + " | " + $Path[$Path.Count - 1] + ":" + $Caller.ScriptLineNumber + " | [" + $LogSeverity.ToString().ToUpper() + "] | " + $Message
+        
+        Out-File -FilePath $this.Globalpath -Append -InputObject $FormattedLog
 
         switch ($LogSeverity) {
             Informative { 
@@ -84,7 +86,6 @@ class Log {
             Default { throw "Invalid log level: $_" }
         }
         # Out-File -FilePath $this.LogPath -Append -InputObject $FormattedLog
-        Out-File -FilePath $this.Globalpath -Append -InputObject $FormattedLog
     }
 
     Info([string] $Message) {

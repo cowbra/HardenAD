@@ -14,11 +14,14 @@ function Get-DriveType {
         return [Microsoft.BitLocker.Structures.BitLockerVolumeType]::OperatingSystem
     }
     else {
-        if (($Global:Array | Where-Object { $_.DriveLetter -eq $Volume.MountPoint }).BusType -eq "USB") {
+        if (($Global:Array | Where-Object { $_.DriveLetter -eq $Volume.MountPoint }).BusType -in @("nvme", "sata")) {
+            return [System.IO.DriveType]::Fixed
+        }
+        elseif (($Global:Array | Where-Object { $_.DriveLetter -eq $Volume.MountPoint }).BusType -eq "USB") {
             return [System.IO.DriveType]::Removable
         }
         else {
-            return [System.IO.DriveType]::Fixed
+            return "Unknown"
         }
     }
 }

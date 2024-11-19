@@ -15,7 +15,7 @@
             -->
             <name>L-S_LocalAdmins_%ComputerName%</name>
             <description>Members of this group will be members of the builtin\administrator group of %ComputerName%</description>
-            <path>OU=LocalAdmins,OU=Groups T0,OU=_Administration,DC=HARDEN,DC=AD</path>
+            <path>OU=LocalAdmins,OU=GroupsT0,OU=_Administration,DC=HARDEN,DC=AD</path>
             <category>Security</category>
             <scope>DomainLocal</scope>
         </target>
@@ -25,7 +25,7 @@
                 Formula: (OSmajorVersion -ge Major.version -and OSminorVersion -ge Minor.version)
             -->
             <supported>
-                <server MajorVersion="6"  MinorVersion="3"/>
+                <server MajorVersion="10"  MinorVersion="0"/>
                 <client MajorVersion="10" MinorVersion="0"/>
             </supported>
         </operatingSystems>
@@ -58,9 +58,9 @@
         <!-- 
             Example 2: Tier 1 and 2 computer is detected based on OU location and the osPattern (if not contains 'serve' then you're tier 2).
         -->        
-        <source dnPattern="OU=Harden_T12" osPattern="serve" target="Tier1"       LegacyTarget="tier1Leg"/>
-        <source dnPattern="OU=Harden_T12" osPattern="Windo" target="Tier2"       LegacyTarget="tier2Leg"/>
-        <source dnPattern="OU=Harden_T12" osPattern=".*"    target="Tier0server" LegacyTarget=""/>
+        <source dnPattern="OU=Harden_T12" osPattern="serve" target="tier1"       LegacyTarget="tier1Leg"/>
+        <source dnPattern="OU=Harden_T12" osPattern="Windo" target="tier2"       LegacyTarget="tier2Leg"/>
+        <source dnPattern="OU=Harden_T12" osPattern=".*"    target="tier0server" LegacyTarget=""/>
 
         <!-- 
             Example 3: PAW are defined by three different OU locations but will target only two <target> and does not have legacy location.
@@ -72,8 +72,8 @@
         <!-- 
             Example 4: based on the OU localization for provisioning, will match three cases (is server, is client and is unknown). Remember: first match wins...
         -->        
-        <source dnPattern="OU=Provisioning" osPattern="Serve" target="provisioningTier1" LegacyTarget=""/>
-        <source dnPattern="OU=Provisioning" osPattern="Windo" target="provisioningTier2" LegacyTarget=""/>
+        <source dnPattern="OU=Provisioning" osPattern="Serve" target="provisioningtier1" LegacyTarget=""/>
+        <source dnPattern="OU=Provisioning" osPattern="Windo" target="provisioningtier2" LegacyTarget=""/>
         <source dnPattern="OU=Provisioning" osPattern=".*"    target="provisioningTier0" LegacyTarget=""/>
         <!-- 
             Example 5: match everything and use value from <default><target>.
@@ -181,7 +181,7 @@
             <scope>DomainLocal</scope>
         </provisioningTier0>
 
-        <provisioningTier1>
+        <provisioningtier1>
             <!-- 
                 Set here default value to create (or move) a local admin group managed by the Tier 1 Managers.
             -->
@@ -190,9 +190,9 @@
             <path>OU=LocalAdmins,OU=GroupsT1,OU=_Administration,DC=HARDEN,DC=AD</path>
             <category>Security</category>
             <scope>DomainLocal</scope>
-        </provisioningTier1>
+        </provisioningtier1>
 
-        <provisioningTier2>
+        <provisioningtier2>
             <!-- 
                 Set here default value to create (or move) a local admin group managed by the Tier 2 Managers.
             -->
@@ -201,8 +201,7 @@
             <path>OU=LocalAdmins,OU=GroupsT2,OU=_Administration,DC=HARDEN,DC=AD</path>
             <category>Security</category>
             <scope>DomainLocal</scope>
-        </provisioningTier2>
+        </provisioningtier2>
     </targets>
 
 </customRuleSet>
-
